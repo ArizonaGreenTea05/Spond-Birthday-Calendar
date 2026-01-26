@@ -1,0 +1,15 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "Spond": {
+    "Username": "your-email@example.com",
+    "Password": "your-password-here",
+    "GroupId": "your-group-id-here",
+    "CalendarPath": "/calendar.ics"
+  }
+}

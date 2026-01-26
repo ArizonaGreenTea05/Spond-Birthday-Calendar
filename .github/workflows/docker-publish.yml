@@ -37,5 +37,6 @@ jobs:
           file: SpondBirthdayCalendar/Dockerfile
           push: true
           tags: |
+            arizonagreentea0905/acal:${{ github.ref_name }}
             arizonagreentea0905/spond-birthday-calendar:latest
           buildkit: true

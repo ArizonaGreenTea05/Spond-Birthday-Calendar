@@ -2,38 +2,36 @@ using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
-using Microsoft.Extensions.Options;
 using Spond.API.Services;
 
 namespace SpondBirthdayCalendar;
 
 public class CalendarService(
-    IOptions<SpondConfiguration> configuration,
+    SpondConfiguration configuration,
     SpondClient spondClient,
     ILogger<CalendarService> logger)
 {
-    private readonly SpondConfiguration _configuration = configuration.Value;
 
     public async Task<string?> GenerateBirthdayCalendarAsync()
     {
         try
         {
-            logger.LogInformation("Starting to generate birthday calendar for group {GroupId}", _configuration.GroupId);
+            logger.LogInformation("Starting to generate birthday calendar for group {GroupId}", configuration.GroupId);
 
             // Authenticate with Spond
-            if (!await spondClient.LoginWithEmail(_configuration.Username, _configuration.Password)
-                && !await spondClient.LoginWithPhoneNumber(_configuration.Username, _configuration.Password))
+            if (!await spondClient.LoginWithEmail(configuration.Username, configuration.Password)
+                && !await spondClient.LoginWithPhoneNumber(configuration.Username, configuration.Password))
                 return null;
             logger.LogInformation("Successfully logged in to Spond");
 
             // Fetch all groups
             var groups = await spondClient.GetGroups();
-            var group = groups?.FirstOrDefault(g => g.Id == _configuration.GroupId);
+            var group = groups?.FirstOrDefault(g => g.Id == configuration.GroupId);
             
             if (group is null)
             {
-                logger.LogError("Group with ID {GroupId} not found", _configuration.GroupId);
-                throw new InvalidOperationException($"Group with ID {_configuration.GroupId} not found");
+                logger.LogError("Group with ID {GroupId} not found", configuration.GroupId);
+                throw new InvalidOperationException($"Group with ID {configuration.GroupId} not found");
             }
 
             logger.LogInformation("Retrieved group: {GroupName} with {MemberCount} members", 

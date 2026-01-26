@@ -3,9 +3,25 @@ using SpondBirthdayCalendar;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<SpondConfiguration>(
-    builder.Configuration.GetSection("Spond"));
+var appsettingsPaths = new[] { "../config/appsettings.json", "appsettings.json" };
+var path = appsettingsPaths.FirstOrDefault(File.Exists) ?? throw new FileNotFoundException("appsettings not found");
+using var appsettingsStream = File.OpenRead(path);
+var appsettingsBuilder = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonStream(appsettingsStream);
 
+var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+                      ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+if (string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase))
+{
+    appsettingsBuilder.AddJsonFile("appsettings.Development.json", optional: true);
+}
+
+var appsettings = appsettingsBuilder.Build();
+var spondConfig = new SpondConfiguration();
+appsettings.GetSection("Spond").Bind(spondConfig);
+
+builder.Services.AddSingleton(spondConfig);
 builder.Services.AddSingleton<SpondClient>();
 builder.Services.AddScoped<CalendarService>();
 
@@ -13,7 +29,6 @@ builder.Services.AddLogging();
 
 var app = builder.Build();
 
-var spondConfig = app.Configuration.GetSection("Spond").Get<SpondConfiguration>();
 var calendarPath = spondConfig?.CalendarPath ?? "/calendar.ics";
 
 app.MapGet(calendarPath, async (CalendarService calendarService) =>

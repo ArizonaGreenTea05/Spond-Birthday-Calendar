@@ -4,46 +4,39 @@ using Ical.Net.DataTypes;
 using Ical.Net.Serialization;
 using Microsoft.Extensions.Options;
 using Spond.API.Services;
-using Microsoft.Extensions.Logging;
 
 namespace SpondBirthdayCalendar;
 
-public class CalendarService
+public class CalendarService(
+    IOptions<SpondConfiguration> configuration,
+    SpondClient spondClient,
+    ILogger<CalendarService> logger)
 {
-    private readonly SpondConfiguration _configuration;
-    private readonly SpondClient _spondClient;
-    private readonly ILogger<CalendarService> _logger;
-
-    public CalendarService(IOptions<SpondConfiguration> configuration, SpondClient spondClient, ILogger<CalendarService> logger)
-    {
-        _configuration = configuration.Value;
-        _spondClient = spondClient;
-        _logger = logger;
-    }
+    private readonly SpondConfiguration _configuration = configuration.Value;
 
     public async Task<string?> GenerateBirthdayCalendarAsync()
     {
         try
         {
-            _logger.LogInformation("Starting to generate birthday calendar for group {GroupId}", _configuration.GroupId);
+            logger.LogInformation("Starting to generate birthday calendar for group {GroupId}", _configuration.GroupId);
 
             // Authenticate with Spond
-            if (!await _spondClient.LoginWithEmail(_configuration.Username, _configuration.Password)
-                && !await _spondClient.LoginWithPhoneNumber(_configuration.Username, _configuration.Password))
+            if (!await spondClient.LoginWithEmail(_configuration.Username, _configuration.Password)
+                && !await spondClient.LoginWithPhoneNumber(_configuration.Username, _configuration.Password))
                 return null;
-            _logger.LogInformation("Successfully logged in to Spond");
+            logger.LogInformation("Successfully logged in to Spond");
 
             // Fetch all groups
-            var groups = await _spondClient.GetGroups();
+            var groups = await spondClient.GetGroups();
             var group = groups?.FirstOrDefault(g => g.Id == _configuration.GroupId);
             
-            if (group == null)
+            if (group is null)
             {
-                _logger.LogError("Group with ID {GroupId} not found", _configuration.GroupId);
+                logger.LogError("Group with ID {GroupId} not found", _configuration.GroupId);
                 throw new InvalidOperationException($"Group with ID {_configuration.GroupId} not found");
             }
 
-            _logger.LogInformation("Retrieved group: {GroupName} with {MemberCount} members", 
+            logger.LogInformation("Retrieved group: {GroupName} with {MemberCount} members", 
                 group.Name, group.Members?.Count ?? 0);
 
             // Create calendar
@@ -68,7 +61,7 @@ public class CalendarService
                             memberName = $"{member.Profile.FirstName} {member.Profile.LastName}".Trim();
                         }
 
-                        _logger.LogDebug("Adding birthday event for {MemberName} on {Birthday:MM-dd}", 
+                        logger.LogDebug("Adding birthday event for {MemberName} on {Birthday:MM-dd}", 
                             memberName, birthday);
 
                         var calendarEvent = new CalendarEvent
@@ -86,7 +79,7 @@ public class CalendarService
                 }
             }
 
-            _logger.LogInformation("Created calendar with {EventCount} birthday events", calendar.Events.Count);
+            logger.LogInformation("Created calendar with {EventCount} birthday events", calendar.Events.Count);
 
             // Serialize to ICS format
             var serializer = new CalendarSerializer();
@@ -101,7 +94,7 @@ public class CalendarService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating birthday calendar");
+            logger.LogError(ex, "Error generating birthday calendar");
             throw;
         }
     }

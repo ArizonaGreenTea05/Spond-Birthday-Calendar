@@ -1,20 +1,18 @@
+using Spond.API.Services;
 using SpondBirthdayCalendar;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Spond settings
 builder.Services.Configure<SpondConfiguration>(
     builder.Configuration.GetSection("Spond"));
 
-// Register the calendar service
+builder.Services.AddSingleton<SpondClient>();
 builder.Services.AddScoped<CalendarService>();
 
-// Add logging
 builder.Services.AddLogging();
 
 var app = builder.Build();
 
-// Map the calendar endpoint
 var spondConfig = app.Configuration.GetSection("Spond").Get<SpondConfiguration>();
 var calendarPath = spondConfig?.CalendarPath ?? "/calendar.ics";
 
@@ -23,7 +21,9 @@ app.MapGet(calendarPath, async (CalendarService calendarService) =>
     try
     {
         var icsContent = await calendarService.GenerateBirthdayCalendarAsync();
-        
+
+        ArgumentNullException.ThrowIfNull(icsContent);
+
         return Results.Text(
             icsContent, 
             contentType: "text/calendar", 

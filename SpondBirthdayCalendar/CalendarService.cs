@@ -11,32 +11,30 @@ namespace SpondBirthdayCalendar;
 public class CalendarService
 {
     private readonly SpondConfiguration _configuration;
+    private readonly SpondClient _spondClient;
     private readonly ILogger<CalendarService> _logger;
 
-    public CalendarService(IOptions<SpondConfiguration> configuration, ILogger<CalendarService> logger)
+    public CalendarService(IOptions<SpondConfiguration> configuration, SpondClient spondClient, ILogger<CalendarService> logger)
     {
         _configuration = configuration.Value;
+        _spondClient = spondClient;
         _logger = logger;
     }
 
-    public async Task<string> GenerateBirthdayCalendarAsync()
+    public async Task<string?> GenerateBirthdayCalendarAsync()
     {
         try
         {
             _logger.LogInformation("Starting to generate birthday calendar for group {GroupId}", _configuration.GroupId);
 
-            // Create Spond client
-            var commonData = new SpondCommonData();
-            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            var spondLogger = loggerFactory.CreateLogger<SpondClient>();
-            var spondClient = new SpondClient(commonData, spondLogger);
-
             // Authenticate with Spond
-            await spondClient.LoginWithEmail(_configuration.Username, _configuration.Password);
+            if (!await _spondClient.LoginWithEmail(_configuration.Username, _configuration.Password)
+                && !await _spondClient.LoginWithPhoneNumber(_configuration.Username, _configuration.Password))
+                return null;
             _logger.LogInformation("Successfully logged in to Spond");
 
             // Fetch all groups
-            var groups = await spondClient.GetGroups();
+            var groups = await _spondClient.GetGroups();
             var group = groups?.FirstOrDefault(g => g.Id == _configuration.GroupId);
             
             if (group == null)

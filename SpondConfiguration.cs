@@ -1,0 +1,9 @@
+namespace SpondBirthdayCalendar;
+
+public class SpondConfiguration
+{
+    public string Username { get; set; } = string.Empty;
+    public string Password { get; set; } = string.Empty;
+    public string GroupId { get; set; } = string.Empty;
+    public string CalendarPath { get; set; } = "/calendar.ics";
+}

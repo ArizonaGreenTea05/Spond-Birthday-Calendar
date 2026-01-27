@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Runtime.Versioning;
 using Ical.Net;
 using Ical.Net.CalendarComponents;
 using Ical.Net.DataTypes;
@@ -22,26 +21,13 @@ public class CalendarService(
         var cultureInfo = new CultureInfo(calendarConfiguration.Language);
         try
         {
-            logger.LogInformation("Starting to generate birthday calendar for group {GroupId}", spondConfiguration.GroupId);
+            logger.LogInformation("Starting to generate birthday calendar for groups [{GroupIds}]", string.Join(", ", spondConfiguration.Groups.Select(g => $"{g.GroupId}[{string.Join(",", g.SubGroupIds)}]")));
 
             // Authenticate with Spond
             if (!await spondClient.LoginWithEmail(spondConfiguration.Username, spondConfiguration.Password)
                 && !await spondClient.LoginWithPhoneNumber(spondConfiguration.Username, spondConfiguration.Password))
                 return null;
             logger.LogInformation("Successfully logged in to Spond");
-
-            // Fetch all groups
-            var groups = await spondClient.GetGroups();
-            var group = groups?.FirstOrDefault(g => g.Id == spondConfiguration.GroupId);
-            
-            if (group is null)
-            {
-                logger.LogError("Group with ID {GroupId} not found", spondConfiguration.GroupId);
-                throw new InvalidOperationException($"Group with ID {spondConfiguration.GroupId} not found");
-            }
-
-            logger.LogInformation("Retrieved group: {GroupName} with {MemberCount} members", 
-                group.Name, group.Members?.Count ?? 0);
 
             // Create calendar
             var calendar = new Calendar
@@ -50,15 +36,24 @@ public class CalendarService(
                 Version = "2.0"
             };
 
-            // Add birthday events for each member
-            if (group.Members is not null)
+            // Fetch all groups
+            var groups = await spondClient.GetGroups();
+
+            foreach (var (group, info) in groups.Select(g => (g, spondConfiguration.Groups.FirstOrDefault(gi => gi.GroupId == g.Id))).Where(g => g.Item2 is not null))
             {
-                foreach (var member in spondConfiguration.IgnoreAdmins ? group.Members.Where(m => m.Respondent) : group.Members)
+                logger.LogInformation("Retrieved group: {GroupName} with {MemberCount} members", group.Name, group.Members?.Count ?? 0);
+
+                // Add birthday events for each member
+                if (group.Members is null) continue;
+
+                var members = info!.SubGroupIds.Count <= 0 ? group.Members : group.Members.Where(m => m.SubGroups.Any(sg => info.SubGroupIds.Contains(sg)));
+
+                foreach (var member in spondConfiguration.IgnoreAdmins ? members.Where(m => m.Respondent) : members)
                 {
                     if (!member.Birthday.HasValue) continue;
                     var birthday = member.Birthday.Value;
                     var memberName = $"{member.FirstName} {member.LastName}".Trim();
-                        
+
                     if (string.IsNullOrWhiteSpace(memberName) && member.Profile is not null)
                     {
                         memberName = $"{member.Profile.FirstName} {member.Profile.LastName}".Trim();

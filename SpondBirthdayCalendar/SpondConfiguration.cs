@@ -6,4 +6,5 @@ public class SpondConfiguration
     public string Password { get; set; } = string.Empty;
     public string GroupId { get; set; } = string.Empty;
     public string CalendarPath { get; set; } = "/calendar.ics";
+    public bool IgnoreAdmins { get; set; }
 }

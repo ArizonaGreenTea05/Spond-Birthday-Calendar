@@ -20,8 +20,11 @@ if (string.Equals(environmentName, "Development", StringComparison.OrdinalIgnore
 var appsettings = appsettingsBuilder.Build();
 var spondConfig = new SpondConfiguration();
 appsettings.GetSection("Spond").Bind(spondConfig);
+var calendarConfig = new CalendarConfiguration();
+appsettings.GetSection("Calendar").Bind(calendarConfig);
 
 builder.Services.AddSingleton(spondConfig);
+builder.Services.AddSingleton(calendarConfig);
 builder.Services.AddSingleton<SpondClient>();
 builder.Services.AddScoped<CalendarService>();
 

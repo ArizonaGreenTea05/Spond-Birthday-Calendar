@@ -63,7 +63,8 @@ public class CalendarService(
 
                     var calendarEvent = new CalendarEvent
                     {
-                        Summary = $"{Translations.ResourceManager.GetString(nameof(Translations.Birthday), cultureInfo)} {memberName}",
+                        Summary = GetEventTitle(cultureInfo, [group.Id], member.SubGroups, memberName),
+                        Description = GetEventDescription(cultureInfo, [group.Id], member.SubGroups, memberName),
                         Start = new CalDateTime(birthday, false),
                         RecurrenceRules = new List<RecurrencePattern>
                         {
@@ -93,5 +94,23 @@ public class CalendarService(
             logger.LogError(ex, "Error generating birthday calendar");
             throw;
         }
+    }
+
+    private string GetEventTitle(CultureInfo cultureInfo, List<string> groups, List<string> subGroups, string memberName)
+    {
+        var eventTitle = calendarConfiguration.CustomTitlePerSubGroup.FirstOrDefault(i => subGroups.Contains(i.Key)).Value;
+        if (string.IsNullOrWhiteSpace(eventTitle)) eventTitle = calendarConfiguration.CustomTitlePerGroup.FirstOrDefault(i => groups.Contains(i.Key)).Value;
+        if (string.IsNullOrWhiteSpace(eventTitle) && calendarConfiguration.CustomTitle is not null) eventTitle = string.Format(calendarConfiguration.CustomTitle, memberName);
+        if (string.IsNullOrWhiteSpace(eventTitle)) eventTitle = $"{Translations.ResourceManager.GetString(nameof(Translations.Birthday), cultureInfo)} {memberName}";
+        return string.Format(eventTitle, memberName);
+    }
+
+    private string? GetEventDescription(CultureInfo cultureInfo, List<string> groups, List<string> subGroups, string memberName)
+    {
+        var eventDescription = calendarConfiguration.CustomDescriptionPerSubGroup.FirstOrDefault(i => subGroups.Contains(i.Key)).Value;
+        if (string.IsNullOrWhiteSpace(eventDescription)) eventDescription = calendarConfiguration.CustomDescriptionPerGroup.FirstOrDefault(i => groups.Contains(i.Key)).Value;
+        if (string.IsNullOrWhiteSpace(eventDescription) && calendarConfiguration.CustomDescription is not null) eventDescription = string.Format(calendarConfiguration.CustomDescription, memberName);
+        if (string.IsNullOrWhiteSpace(eventDescription)) eventDescription = null;
+        return eventDescription is null ? null : string.Format(eventDescription, memberName);
     }
 }

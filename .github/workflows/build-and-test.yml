@@ -17,10 +17,10 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Install dependencies
-        run: dotnet restore SpondBirthdayCalendar.slnx
+        run: dotnet restore SpondBirthdayCalendar.sln
 
       - name: Build solution
-        run: dotnet build SpondBirthdayCalendar.slnx --no-restore --configuration Release
+        run: dotnet build SpondBirthdayCalendar.sln --no-restore --configuration Release
     
       - name: Test
-        run: dotnet test SpondBirthdayCalendar.slnx --no-restore
+        run: dotnet test SpondBirthdayCalendar.sln --no-restore
